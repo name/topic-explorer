@@ -1,0 +1,108 @@
+/* You can add custom CSS styles for your plugin here */
+.dead-links-modal ul {
+  margin-top: 10px;
+}
+
+.dead-links-modal li {
+  margin-bottom: 5px;
+}
+
+/* General view styling */
+.topic-explorer-view {
+  padding: 10px;
+}
+
+.topic-explorer-view h2 {
+  margin-bottom: 10px;
+}
+
+/* New chat container styling */
+.topic-explorer-chat-container {
+  display: flex;
+  flex-direction: column;
+  /* Stack messages vertically */
+  gap: 8px;
+  /* Spacing between messages */
+}
+
+/* New chat-message styling (horizontal layout with flexbox) */
+.chat-message {
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  display: flex;
+  /* Enable flexbox for chat-message */
+  flex-direction: row;
+  /* Arrange items in a row */
+  justify-content: space-between;
+  /* Distribute space between link text and buttons */
+  align-items: center;
+  /* Vertically align items in the center */
+}
+
+/* Style for the link text to prevent it from stretching too much */
+.chat-link-text {
+  font-weight: normal;
+  flex-grow: 1;
+  /* Allow link text to take up available space */
+  margin-right: 10px;
+  /* Add some space between text and buttons */
+  overflow: hidden;
+  /* Ensure text doesn't overflow */
+  text-overflow: ellipsis;
+  /* Add ellipsis for overflowed text */
+  white-space: nowrap;
+  /* Prevent text from wrapping */
+}
+
+/* Different background for normalization messages (optional) */
+.normalization-message {
+  /* Using Obsidian's user color variable */
+  background-color: rgba(var(--color-base-30), 0.05);
+}
+
+/* Different background for dead-link cards */
+.dead-link-message {
+  /* Using Obsidian's user color variable */
+  background-color: rgba(var(--color-base-30), 0.05);
+}
+
+/* Remove card-button-group styling */
+.chat-button-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 0;
+  /* Reset margin-top as it's no longer needed in horizontal layout */
+}
+
+/* Button styles - keep the base button styles, adjust if needed */
+.chat-button {
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  border: 1px solid var(--background-modifier-border);
+  /* Add a border for chat-like buttons */
+  background-color: transparent;
+  /* Make buttons transparent */
+  color: var(--text-normal);
+  font-size: 0.85em;
+  /* Slightly smaller font */
+}
+
+/* Button modifiers - keep the modifier styles */
+.normalize-button {
+  background-color: rgba(var(--color-yellow-rgb), 0.2);
+  color: var(--color-yellow);
+}
+
+.generate-button {
+  background-color: rgba(var(--color-green-rgb), 0.2);
+  color: var(--color-green);
+}
+
+/* No issues message style - unchanged */
+.no-issues {
+  font-style: italic;
+  color: var(--text-muted);
+}
