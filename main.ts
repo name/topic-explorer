@@ -656,10 +656,9 @@ class ResearchTopicsView extends ItemView {
 Follow these guidelines:
 1. Keep explanations concise and clear (ELI5 style)
 2. Use Zettelkasten-style [[wikilinks]] for related concepts
-3. For general terms that require disambiguation, use the format [[Concept (${link_text})|Concept]]
-4. Only include relevant and useful concepts, points, and questions
-5. Make sure all sections are filled with appropriate content
-6. Use markdown formatting consistently
+3. Only include relevant and useful concepts, points, and questions
+4. Make sure all sections are filled with appropriate content
+5. Use markdown formatting consistently
 
 Topic: ${link_text}`;
 
@@ -958,10 +957,9 @@ type: permanent
 Follow these guidelines:
 1. Keep explanations concise and clear (ELI5 style)
 2. Use Zettelkasten-style [[wikilinks]] for related concepts
-3. For general terms that require disambiguation, use the format [[Concept (${link_text})|Concept]]
-4. Only include relevant and useful concepts, points, and questions
-5. Make sure all sections are filled with appropriate content
-6. Use markdown formatting consistently
+3. Only include relevant and useful concepts, points, and questions
+4. Make sure all sections are filled with appropriate content
+5. Use markdown formatting consistently
 
 Topic: ${link_text}`;
 
@@ -1209,10 +1207,9 @@ class DeadLinksModal extends Modal {
 Follow these guidelines:
 1. Keep explanations concise and clear (ELI5 style)
 2. Use Zettelkasten-style [[wikilinks]] for related concepts
-3. For general terms that require disambiguation, use the format [[Concept (${link_text})|Concept]]
-4. Only include relevant and useful concepts, points, and questions
-5. Make sure all sections are filled with appropriate content
-6. Use markdown formatting consistently
+3. Only include relevant and useful concepts, points, and questions
+4. Make sure all sections are filled with appropriate content
+5. Use markdown formatting consistently
 
 Topic: ${link_text}`;
 
