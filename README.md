@@ -4,7 +4,7 @@
 
 Topic Explorer is an Obsidian plugin that helps you learn topics deeply by generating structured notes with properly formatted "dead links" to related concepts that you can progressively explore. It enhances your knowledge management workflow by identifying, normalizing, and generating content for wikilinks in your notes.
 
-![Topic Explorer Screenshot](./example/example_1.png)
+![Topic Explorer Screenshot](./images/example_1.png)
 
 ## Key Features
 
