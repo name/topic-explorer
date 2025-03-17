@@ -99,10 +99,43 @@
 .generate-button {
   background-color: rgba(var(--color-green-rgb), 0.2);
   color: var(--color-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.generate-button.generating {
+  opacity: 0.7;
+}
+
+.generate-button-text {
+  vertical-align: middle;
 }
 
 /* No issues message style - unchanged */
 .no-issues {
   font-style: italic;
   color: var(--text-muted);
+}
+
+.topic-explorer-loading {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: topic-explorer-spin 1s linear infinite;
+  margin-right: 0.5em;
+  vertical-align: middle;
+}
+
+@keyframes topic-explorer-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }

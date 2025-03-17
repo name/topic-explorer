@@ -5,7 +5,7 @@ import * as pluralize from 'pluralize'; // Import pluralize as a namespace
 const WIKILINK_REGEX = /\[\[([^\]]+)\]\]/g;
 
 // View type for our sidebar
-const VIEW_TYPE_DEAD_LINKS = "dead-links-view";
+const VIEW_TYPE_RESEARCH_TOPICS = "research-topics-view";
 
 interface TopicExplorerSettings {
 	capitalizeLinks: boolean;
@@ -37,30 +37,25 @@ const DEFAULT_SETTINGS: TopicExplorerSettings = {
 
 export default class TopicExplorer extends Plugin {
 	settings: TopicExplorerSettings;
-	deadLinksView: DeadLinksView;
+	researchTopicsView: ResearchTopicsView;
 	private refreshInterval: number;
 
 	async onload() {
 		await this.loadSettings();
 
+		// Load CSS
+		this.loadStyles();
+
 		// Register the view type
 		this.registerView(
-			VIEW_TYPE_DEAD_LINKS,
-			(leaf) => (this.deadLinksView = new DeadLinksView(leaf, this))
+			VIEW_TYPE_RESEARCH_TOPICS,
+			(leaf) => (this.researchTopicsView = new ResearchTopicsView(leaf, this))
 		);
-
-		// Add a command to detect dead wikilinks in the current note
-		this.addCommand({
-			id: 'detect-dead-wikilinks',
-			name: 'Detect Dead Wikilinks',
-			callback: () => this.detectDeadWikilinks(),
-			hotkeys: []
-		});
 
 		// Add a command to show the sidebar
 		this.addCommand({
-			id: 'show-dead-links-sidebar',
-			name: 'Show Dead Links Sidebar',
+			id: 'show-research-topics-sidebar',
+			name: 'Show Research Topics Sidebar',
 			callback: () => this.activateView(),
 			hotkeys: []
 		});
@@ -73,8 +68,8 @@ export default class TopicExplorer extends Plugin {
 		// Register for file open events to update the sidebar
 		this.registerEvent(
 			this.app.workspace.on('file-open', () => {
-				if (this.deadLinksView) {
-					this.deadLinksView.updateView();
+				if (this.researchTopicsView) {
+					this.researchTopicsView.updateView();
 				}
 			})
 		);
@@ -89,15 +84,15 @@ export default class TopicExplorer extends Plugin {
 
 		// Set up interval to refresh the sidebar every 5 seconds
 		this.refreshInterval = window.setInterval(() => {
-			if (this.deadLinksView && this.deadLinksView.leaf) { // Check if view and leaf are valid
-				this.deadLinksView.updateView();
+			if (this.researchTopicsView && this.researchTopicsView.leaf) { // Check if view and leaf are valid
+				this.researchTopicsView.updateView();
 			}
 		}, 5000); // 5000 milliseconds = 5 seconds
 	}
 
 	async onunload() {
 		// Clean up resources when plugin is disabled
-		this.app.workspace.detachLeavesOfType(VIEW_TYPE_DEAD_LINKS);
+		this.app.workspace.detachLeavesOfType(VIEW_TYPE_RESEARCH_TOPICS);
 
 		// Clear the refresh interval when plugin is unloaded
 		window.clearInterval(this.refreshInterval);
@@ -116,7 +111,7 @@ export default class TopicExplorer extends Plugin {
 		const { workspace } = this.app;
 
 		// If view already exists, show it
-		let leaf = workspace.getLeavesOfType(VIEW_TYPE_DEAD_LINKS)[0];
+		let leaf = workspace.getLeavesOfType(VIEW_TYPE_RESEARCH_TOPICS)[0];
 
 		if (!leaf) {
 			// Create a new leaf in the right sidebar
@@ -125,7 +120,7 @@ export default class TopicExplorer extends Plugin {
 			// Check if we got a valid leaf
 			if (rightLeaf) {
 				await rightLeaf.setViewState({
-					type: VIEW_TYPE_DEAD_LINKS,
+					type: VIEW_TYPE_RESEARCH_TOPICS,
 					active: true,
 				});
 				leaf = rightLeaf;
@@ -140,8 +135,8 @@ export default class TopicExplorer extends Plugin {
 		workspace.revealLeaf(leaf);
 
 		// Update the view
-		if (this.deadLinksView) {
-			this.deadLinksView.updateView();
+		if (this.researchTopicsView) {
+			this.researchTopicsView.updateView();
 		}
 	}
 
@@ -235,8 +230,8 @@ export default class TopicExplorer extends Plugin {
 		}
 
 		// Update the sidebar view if it's open
-		if (this.deadLinksView) {
-			this.deadLinksView.updateView();
+		if (this.researchTopicsView) {
+			this.researchTopicsView.updateView();
 		}
 	}
 
@@ -307,10 +302,86 @@ export default class TopicExplorer extends Plugin {
 		// Convert wikilink to a file path
 		return `${link}.md`;
 	}
+
+	formatLink(concept: string, topic: string): string {
+		// If the concept is a general term, add the topic in brackets
+		const generalTerms = ['Introduction', 'History', 'Theory', 'Application', 'Example'];
+		if (generalTerms.includes(concept)) {
+			const link_text = this.normalizeLink(concept);
+			return `${link_text} (${topic})|${link_text}`;
+		}
+		return concept;
+	}
+
+	loadStyles() {
+		const styleEl = document.createElement('style');
+		styleEl.id = 'topic-explorer-styles';
+		styleEl.textContent = `
+			.topic-explorer-loading {
+				display: inline-block;
+				width: 1em;
+				height: 1em;
+				border: 2px solid currentColor;
+				border-radius: 50%;
+				border-top-color: transparent;
+				animation: topic-explorer-spin 1s linear infinite;
+				margin-right: 0.5em;
+				vertical-align: middle;
+			}
+
+			@keyframes topic-explorer-spin {
+				0% { transform: rotate(0deg); }
+				100% { transform: rotate(360deg); }
+			}
+
+			.generate-button.generating {
+				opacity: 0.7;
+			}
+			
+			.generate-button.generated {
+				color: var(--text-on-accent);
+			}
+			
+			.generate-button.failed {
+				background-color: var(--interactive-normal);
+				color: var(--text-normal);
+			}
+
+			.generate-button-text {
+				vertical-align: middle;
+			}
+			
+			.research-topics-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 10px;
+			}
+			
+			.research-topics-header h3 {
+				margin: 0;
+			}
+			
+			.generate-all-button {
+				display: flex;
+				align-items: center;
+				font-size: 0.85em;
+			}
+			
+			.success-indicator, .failure-indicator {
+				font-weight: bold;
+				display: inline-block;
+				margin-left: 8px;
+				font-size: 1.2em;
+			}
+		`;
+		document.head.appendChild(styleEl);
+	}
 }
 
-class DeadLinksView extends ItemView {
+class ResearchTopicsView extends ItemView {
 	plugin: TopicExplorer;
+	isGenerating: boolean = false;
 
 	constructor(leaf: WorkspaceLeaf, plugin: TopicExplorer) {
 		super(leaf);
@@ -318,7 +389,7 @@ class DeadLinksView extends ItemView {
 	}
 
 	getViewType(): string {
-		return VIEW_TYPE_DEAD_LINKS;
+		return VIEW_TYPE_RESEARCH_TOPICS;
 	}
 
 	getDisplayText(): string {
@@ -334,7 +405,14 @@ class DeadLinksView extends ItemView {
 	}
 
 	async updateView() {
-		console.log("updateView called"); // DEBUG: Log when updateView is called
+		console.log("updateView called at", new Date().toISOString()); // Enhanced debug log
+
+		// Skip update if we're currently generating a file
+		if (this.isGenerating) {
+			console.log("Skipping update because file generation is in progress");
+			return;
+		}
+
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass('topic-explorer-view'); // Add a class to the view for CSS
@@ -424,7 +502,21 @@ class DeadLinksView extends ItemView {
 			}
 
 			if (dead_links.length > 0) {
-				chatContainer.createEl('h3', { text: 'Dead Links' });
+				const headerContainer = chatContainer.createEl('div', { cls: 'research-topics-header' });
+				headerContainer.createEl('h3', { text: 'Research Topics' });
+
+				// Add "Generate All" button if there are multiple dead links
+				if (dead_links.length > 1) {
+					const generateAllBtn = headerContainer.createEl('button', {
+						text: 'Generate All',
+						cls: 'mod-cta generate-all-button'
+					});
+					generateAllBtn.style.marginLeft = '10px';
+					generateAllBtn.addEventListener('click', async () => {
+						await this.generateAllFiles(dead_links, normalized_links);
+					});
+				}
+
 				dead_links.forEach((link) => {
 					const normalized = normalized_links.get(link) || link;
 					const messageItem = chatContainer.createEl('div', { cls: 'chat-message dead-link-message' }); // dead-link message
@@ -494,10 +586,41 @@ class DeadLinksView extends ItemView {
 	}
 
 	async createFile(link: string) {
-		// Extract the link text (without alias)
-		const link_text = link.includes('|') ? link.split('|')[0] : link;
+		// Find the message item containing this link
+		const messageItem = Array.from(this.contentEl.querySelectorAll('.dead-link-message'))
+			.find(item => item.querySelector('.chat-link-text')?.textContent?.includes(link));
+
+		if (!messageItem) {
+			console.error("Could not find message item for link:", link);
+			return false;
+		}
+
+		// Find the button
+		const button = messageItem.querySelector('button.generate-button') as HTMLButtonElement;
+		if (!button) {
+			console.error("Could not find generate button");
+			return false;
+		}
+
+		// Create and add a loading indicator next to the link text
+		const linkText = messageItem.querySelector('.chat-link-text');
+		const loadingIndicator = document.createElement('span');
+		loadingIndicator.className = 'topic-explorer-loading';
+		loadingIndicator.id = 'topic-explorer-loading-' + Date.now(); // Add unique ID
+		loadingIndicator.style.marginLeft = '8px';
+		linkText?.appendChild(loadingIndicator);
+
+		// Disable the button and change text
+		button.disabled = true;
+		button.textContent = 'Generating...';
+
+		// Set a flag to prevent refresh from interfering
+		this.isGenerating = true;
 
 		try {
+			// Extract the link text (without alias)
+			const link_text = link.includes('|') ? link.split('|')[0] : link;
+
 			// Get the folder where new notes should be created
 			const newNoteFolderPath = this.getNewNoteFolder();
 
@@ -506,15 +629,112 @@ class DeadLinksView extends ItemView {
 				? `${newNoteFolderPath}/${link_text}.md`
 				: `${link_text}.md`;
 
-			// Create the file with a template
-			const template = `# ${link_text}\n`;
-			await this.app.vault.create(file_path, template);
+			// Generate the content using the prompt
+			const prompt = `Create a structured note about the following topic using this exact format:
+
+# ${link_text}
+
+## Overview
+*Add a brief explanation of ${link_text} here*
+
+## Key Points
+*Add a few key points about ${link_text} here as paragraphs, feel free to add subpoints*
+
+## Related Concepts
+- [[${this.plugin.formatLink("Related Concept 1", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 2", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 3", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 4", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 5", link_text)}]]
+
+## Questions to Explore
+*Add a few questions to explore about ${link_text} here as list items*
+
+## Resources
+*Add a few resources to explore about ${link_text} here as list items*
+
+Follow these guidelines:
+1. Keep explanations concise and clear (ELI5 style)
+2. Use Zettelkasten-style [[wikilinks]] for related concepts
+3. For general terms that require disambiguation, use the format [[Concept (${link_text})|Concept]]
+4. Only include relevant and useful concepts, points, and questions
+5. Make sure all sections are filled with appropriate content
+6. Use markdown formatting consistently
+
+Topic: ${link_text}`;
+
+			let content = '';
+
+			if (this.plugin.settings.useOllamaForGeneration) {
+				try {
+					console.log("Sending request to Ollama server...");
+					const response = await fetch(`${this.plugin.settings.ollamaServerUrl}/api/generate`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							model: this.plugin.settings.ollamaModel,
+							prompt: prompt,
+							stream: false,
+							options: {
+								temperature: this.plugin.settings.ollamaTemperature,
+								top_p: this.plugin.settings.ollamaTopP,
+								top_k: this.plugin.settings.ollamaTopK,
+								num_predict: this.plugin.settings.ollamaMaxTokens
+							}
+						})
+					});
+
+					console.log("Received response from Ollama server");
+					if (response.ok) {
+						const data = await response.json();
+						content += data.response;
+					} else {
+						content += `<!-- Error generating content: ${response.statusText} -->\n\n${prompt}`;
+					}
+				} catch (error) {
+					console.error("Error with Ollama request:", error);
+					content += `<!-- Error generating content: ${error.message} -->\n\n${prompt}`;
+				}
+			} else {
+				content += prompt;
+			}
+
+			// Get current date in YYYY-MM-DD format
+			const today = new Date();
+			const dateString = today.toISOString().split('T')[0];
+
+			// Prepend the YAML frontmatter to the content
+			const frontmatter = `---
+created: "${dateString}"
+type: permanent
+---
+
+`;
+			content = frontmatter + content;
+
+			console.log("Creating file...");
+			// Create the file with the generated content
+			await this.app.vault.create(file_path, content);
+			console.log("File created successfully");
 
 			new Notice(`Created file: ${file_path}`);
+
+			// Add a delay to ensure the loading state is visible for a sufficient amount of time
+			await new Promise(resolve => setTimeout(resolve, 1000));
+
 			return true;
 		} catch (error) {
+			console.error('Error creating file:', error);
 			new Notice(`Error creating file: ${error.message}`);
 			return false;
+		} finally {
+			// Reset the generation flag
+			this.isGenerating = false;
+
+			// Manually update the view to reflect changes
+			this.updateView();
 		}
 	}
 
@@ -549,6 +769,262 @@ class DeadLinksView extends ItemView {
 
 	escapeRegExp(string: string) {
 		return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	}
+
+	async generateAllFiles(deadLinks: string[], normalizedLinks: Map<string, string>) {
+		// Disable the Generate All button and show loading state
+		const generateAllBtn = this.contentEl.querySelector('.generate-all-button') as HTMLButtonElement;
+		if (generateAllBtn) {
+			generateAllBtn.disabled = true;
+			generateAllBtn.textContent = 'Generating...';
+
+			// Add a loading spinner to the button
+			const loadingSpinner = document.createElement('span');
+			loadingSpinner.className = 'topic-explorer-loading';
+			loadingSpinner.style.marginRight = '8px';
+			generateAllBtn.prepend(loadingSpinner);
+		}
+
+		// Set the flag to prevent refresh
+		this.isGenerating = true;
+
+		try {
+			// Create a counter for successful generations
+			let successCount = 0;
+
+			// Get all message items for dead links
+			const messageItems = Array.from(this.contentEl.querySelectorAll('.dead-link-message'));
+
+			// Process each dead link sequentially
+			for (let i = 0; i < deadLinks.length; i++) {
+				const link = deadLinks[i];
+				const normalized = normalizedLinks.get(link) || link;
+
+				// Find the message item for this link
+				const messageItem = messageItems.find(item =>
+					item.querySelector('.chat-link-text')?.textContent?.includes(link)
+				);
+
+				if (messageItem) {
+					// Update the Generate All button to show progress
+					if (generateAllBtn) {
+						generateAllBtn.textContent = `Generating ${i + 1}/${deadLinks.length}...`;
+
+						// Make sure the spinner is still there
+						if (!generateAllBtn.querySelector('.topic-explorer-loading')) {
+							const spinner = document.createElement('span');
+							spinner.className = 'topic-explorer-loading';
+							spinner.style.marginRight = '8px';
+							generateAllBtn.prepend(spinner);
+						}
+					}
+
+					// Add loading indicator to this item
+					const linkText = messageItem.querySelector('.chat-link-text');
+					const itemLoadingIndicator = document.createElement('span');
+					itemLoadingIndicator.className = 'topic-explorer-loading';
+					itemLoadingIndicator.id = `loading-${i}`;
+					itemLoadingIndicator.style.marginLeft = '8px';
+					linkText?.appendChild(itemLoadingIndicator);
+
+					// Disable the individual generate button
+					const button = messageItem.querySelector('button.generate-button') as HTMLButtonElement;
+					if (button) {
+						button.disabled = true;
+						button.textContent = 'Generating...';
+					}
+
+					// Generate the file and wait for it to complete
+					const success = await this.createFileWithoutUI(normalized);
+
+					if (success) {
+						successCount++;
+
+						// Update the item to show success
+						if (button) {
+							button.textContent = 'Generated';
+							button.disabled = true;
+							button.classList.add('generated');
+						}
+
+						// Remove the loading indicator
+						const loadingIndicator = document.getElementById(`loading-${i}`);
+						if (loadingIndicator) {
+							loadingIndicator.remove();
+						}
+
+						// Add a success indicator
+						const successIndicator = document.createElement('span');
+						successIndicator.innerHTML = '✓';
+						successIndicator.className = 'success-indicator';
+						successIndicator.style.color = 'var(--text-success)';
+						successIndicator.style.marginLeft = '8px';
+						linkText?.appendChild(successIndicator);
+					} else {
+						// Update the item to show failure
+						if (button) {
+							button.textContent = 'Failed';
+							button.disabled = false;
+							button.classList.add('failed');
+						}
+
+						// Remove the loading indicator
+						const loadingIndicator = document.getElementById(`loading-${i}`);
+						if (loadingIndicator) {
+							loadingIndicator.remove();
+						}
+
+						// Add a failure indicator
+						const failureIndicator = document.createElement('span');
+						failureIndicator.innerHTML = '✗';
+						failureIndicator.className = 'failure-indicator';
+						failureIndicator.style.color = 'var(--text-error)';
+						failureIndicator.style.marginLeft = '8px';
+						linkText?.appendChild(failureIndicator);
+					}
+				}
+
+				// Short pause between files to allow UI to update
+				await new Promise(resolve => setTimeout(resolve, 300));
+			}
+
+			// Show a notice with the results
+			new Notice(`Generated ${successCount} of ${deadLinks.length} files`);
+
+			// Update the Generate All button
+			if (generateAllBtn) {
+				generateAllBtn.textContent = `Generated ${successCount}/${deadLinks.length}`;
+				generateAllBtn.disabled = true;
+
+				// Remove the spinner
+				const spinner = generateAllBtn.querySelector('.topic-explorer-loading');
+				if (spinner) {
+					spinner.remove();
+				}
+			}
+
+			return true;
+		} catch (error) {
+			console.error('Error generating all files:', error);
+			new Notice(`Error generating files: ${error.message}`);
+			return false;
+		} finally {
+			// Reset the generation flag
+			this.isGenerating = false;
+
+			// Manually update the view to reflect changes after a short delay
+			// This gives users time to see the results before the view refreshes
+			setTimeout(() => this.updateView(), 3000);
+		}
+	}
+
+	async createFileWithoutUI(link: string): Promise<boolean> {
+		try {
+			// Extract the link text (without alias)
+			const link_text = link.includes('|') ? link.split('|')[0] : link;
+
+			// Get the folder where new notes should be created
+			const newNoteFolderPath = this.getNewNoteFolder();
+
+			// Combine the folder path with the file name
+			const file_path = newNoteFolderPath && newNoteFolderPath !== '/'
+				? `${newNoteFolderPath}/${link_text}.md`
+				: `${link_text}.md`;
+
+			// Generate the content using the prompt
+			const prompt = `Create a structured note about the following topic using this exact format:
+
+# ${link_text}
+
+## Overview
+*Add a brief explanation of ${link_text} here*
+
+## Key Points
+*Add a few key points about ${link_text} here as paragraphs, feel free to add subpoints*
+
+## Related Concepts
+- [[${this.plugin.formatLink("Related Concept 1", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 2", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 3", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 4", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 5", link_text)}]]
+
+## Questions to Explore
+*Add a few questions to explore about ${link_text} here as list items*
+
+## Resources
+*Add a few resources to explore about ${link_text} here as list items*
+
+Follow these guidelines:
+1. Keep explanations concise and clear (ELI5 style)
+2. Use Zettelkasten-style [[wikilinks]] for related concepts
+3. For general terms that require disambiguation, use the format [[Concept (${link_text})|Concept]]
+4. Only include relevant and useful concepts, points, and questions
+5. Make sure all sections are filled with appropriate content
+6. Use markdown formatting consistently
+
+Topic: ${link_text}`;
+
+			let content = '';
+
+			if (this.plugin.settings.useOllamaForGeneration) {
+				try {
+					console.log(`Sending request to Ollama server for "${link_text}"...`);
+					const response = await fetch(`${this.plugin.settings.ollamaServerUrl}/api/generate`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							model: this.plugin.settings.ollamaModel,
+							prompt: prompt,
+							stream: false,
+							options: {
+								temperature: this.plugin.settings.ollamaTemperature,
+								top_p: this.plugin.settings.ollamaTopP,
+								top_k: this.plugin.settings.ollamaTopK,
+								num_predict: this.plugin.settings.ollamaMaxTokens
+							}
+						})
+					});
+
+					console.log(`Received response from Ollama server for "${link_text}"`);
+					if (response.ok) {
+						const data = await response.json();
+						content += data.response;
+					} else {
+						content += `<!-- Error generating content: ${response.statusText} -->\n\n${prompt}`;
+					}
+				} catch (error) {
+					console.error(`Error with Ollama request for "${link_text}":`, error);
+					content += `<!-- Error generating content: ${error.message} -->\n\n${prompt}`;
+				}
+			} else {
+				content += prompt;
+			}
+
+			// Get current date in YYYY-MM-DD format
+			const today = new Date();
+			const dateString = today.toISOString().split('T')[0];
+
+			// Prepend the YAML frontmatter to the content
+			const frontmatter = `---
+created: "${dateString}"
+type: permanent
+---
+`;
+			content = frontmatter + content;
+
+			console.log(`Creating file for "${link_text}"...`);
+			// Create the file with the generated content
+			await this.app.vault.create(file_path, content);
+			console.log(`File created successfully for "${link_text}"`);
+
+			return true;
+		} catch (error) {
+			console.error(`Error creating file for "${link}":`, error);
+			return false;
+		}
 	}
 }
 
@@ -604,12 +1080,12 @@ class DeadLinksModal extends Modal {
 			contentEl.createEl('hr');
 		}
 
-		contentEl.createEl('h3', { text: 'Dead Links' });
+		contentEl.createEl('h3', { text: 'Research Topics' });
 		const list = contentEl.createEl('ul');
 
 		// If no dead links after normalization, show a message
 		if (this.dead_links.length === 0) {
-			list.createEl('li', { text: 'No dead links found after normalization' });
+			list.createEl('li', { text: 'No research topics found after normalization' });
 			return;
 		}
 
@@ -645,7 +1121,7 @@ class DeadLinksModal extends Modal {
 				// If no more dead links, close the modal or update the message
 				if (this.dead_links.length === 0) {
 					list.empty();
-					list.createEl('li', { text: 'All dead links have been resolved!' });
+					list.createEl('li', { text: 'All research topics have been resolved!' });
 				}
 			});
 		}
@@ -706,13 +1182,100 @@ class DeadLinksModal extends Modal {
 				? `${newNoteFolderPath}/${link_text}.md`
 				: `${link_text}.md`;
 
-			// Create the file with the template from settings
-			const template = `# ${link_text}\n`;
-			await this.app.vault.create(file_path, template);
+			// Generate the content using the prompt
+			const prompt = `Create a structured note about the following topic using this exact format:
+
+# ${link_text}
+
+## Overview
+*Add a brief explanation of ${link_text} here*
+
+## Key Points
+*Add a few key points about ${link_text} here as paragraphs, feel free to add subpoints*
+
+## Related Concepts
+- [[${this.plugin.formatLink("Related Concept 1", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 2", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 3", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 4", link_text)}]]
+- [[${this.plugin.formatLink("Related Concept 5", link_text)}]]
+
+## Questions to Explore
+*Add a few questions to explore about ${link_text} here as list items*
+
+## Resources
+*Add a few resources to explore about ${link_text} here as list items*
+
+Follow these guidelines:
+1. Keep explanations concise and clear (ELI5 style)
+2. Use Zettelkasten-style [[wikilinks]] for related concepts
+3. For general terms that require disambiguation, use the format [[Concept (${link_text})|Concept]]
+4. Only include relevant and useful concepts, points, and questions
+5. Make sure all sections are filled with appropriate content
+6. Use markdown formatting consistently
+
+Topic: ${link_text}`;
+
+			let content = '';
+
+			if (this.plugin.settings.useOllamaForGeneration) {
+				try {
+					console.log("Sending request to Ollama server...");
+					const response = await fetch(`${this.plugin.settings.ollamaServerUrl}/api/generate`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							model: this.plugin.settings.ollamaModel,
+							prompt: prompt,
+							stream: false,
+							options: {
+								temperature: this.plugin.settings.ollamaTemperature,
+								top_p: this.plugin.settings.ollamaTopP,
+								top_k: this.plugin.settings.ollamaTopK,
+								num_predict: this.plugin.settings.ollamaMaxTokens
+							}
+						})
+					});
+
+					console.log("Received response from Ollama server");
+					if (response.ok) {
+						const data = await response.json();
+						content += data.response;
+					} else {
+						content += `<!-- Error generating content: ${response.statusText} -->\n\n${prompt}`;
+					}
+				} catch (error) {
+					console.error("Error with Ollama request:", error);
+					content += `<!-- Error generating content: ${error.message} -->\n\n${prompt}`;
+				}
+			} else {
+				content += prompt;
+			}
+
+			// Get current date in YYYY-MM-DD format
+			const today = new Date();
+			const dateString = today.toISOString().split('T')[0];
+
+			// Prepend the YAML frontmatter to the content
+			const frontmatter = `---
+created: "${dateString}"
+type: permanent
+---
+
+`;
+			content = frontmatter + content;
+
+			console.log("Creating file...");
+			// Create the file with the generated content
+			await this.app.vault.create(file_path, content);
+			console.log("File created successfully");
 
 			new Notice(`Created file: ${file_path}`);
 			return true;
 		} catch (error) {
+			console.error('Error creating file:', error);
 			new Notice(`Error creating file: ${error.message}`);
 			return false;
 		}
